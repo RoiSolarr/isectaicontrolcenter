@@ -6,6 +6,9 @@ Internal administrator console for the iSectAI platform: monitor every connected
 Built for the **iSectAI Developer Paid Trial — Database Architecture & Admin Dashboard**.
 All business and customer data in this repository is fictional.
 
+**Live demo:** https://isectaicontrolcenter.vercel.app
+(sign in with the administrator account listed under [Demo accounts](#demo-accounts-seed-only))
+
 | Layer | Choice |
 | --- | --- |
 | Framework | Next.js 15 (App Router) + React 19 |
@@ -98,7 +101,7 @@ These passwords exist only to make the demo reproducible. Remove or change them 
    "invalid schema" error.
 3. Create the tables, either:
    - with the CLI: `npx supabase login`, `npx supabase link --project-ref <your-project-ref>`, `npm run db:push`; or
-   - in the SQL editor: run the three files in `supabase/migrations/` one by one, in filename order.
+   - in the SQL editor: run the four files in `supabase/migrations/` one by one, in filename order.
 4. Load the sample data: open the SQL editor, paste `supabase/seed.sql`, and run it.
    *(If the demo-account inserts into `auth.users` fail in your project, delete section 1 of the seed
    (down to "-- 2. Industries"), run the rest, create your admin user in
@@ -109,6 +112,10 @@ These passwords exist only to make the demo reproducible. Remove or change them 
 ```
 5. In **Authentication → Providers → Email**, turn off "Allow new users to sign up" so only
    provisioned staff can have accounts.
+6. **If you deploy the app** (for example on Vercel), add the same environment variables in the host's
+   settings, then go to **Authentication → URL Configuration** in Supabase. Set **Site URL** to the
+   deployed address (no wildcard) and add `https://your-deployed-url/**` to **Redirect URLs**.
+   Without this, sign-in can redirect to `localhost` or be blocked.
 
 ### Check that the data loaded
 
@@ -147,6 +154,8 @@ Copy `.env.example` to `.env.local` (git-ignored). Real values are never committ
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | Optional: target of the login page's "Forgot password?" link |
 
 While the placeholder values are still in place, the login page shows a "Supabase is not connected yet" notice instead of crashing.
+
+On a host such as Vercel, `NEXT_PUBLIC_` values are baked in at build time, so redeploy after changing them.
 
 ## Scripts
 
@@ -197,7 +206,7 @@ src/
 
 supabase/
 ├─ config.toml                   # Local CLI config (schemas exposed, self-sign-up disabled)
-├─ migrations/                   # 1 schemas + tables · 2 permissions + RLS · 3 dashboard view
+├─ migrations/                   # 1 schemas + tables · 2 permissions + RLS · 3 dashboard views · 4 admin self-profile
 └─ seed.sql                      # Fictional businesses, staff, customers, appointments, jobs, activity
 
 docs/ARCHITECTURE.md             # Design decisions (the trial's "Architecture" write-up)
@@ -222,6 +231,8 @@ docs/ARCHITECTURE.md             # Design decisions (the trial's "Architecture" 
 | "Email or password is incorrect" with demo account | The seed did not run, or its section 1 failed |
 | "duplicate key" on `auth.users` while seeding | The demo users already exist: run the "Start over" SQL first |
 | "Database error querying schema" on sign-in | Seeded auth rows are not compatible with your Supabase version: create the user in the dashboard and add the `core.platform_admins` row (see hosted step 4) |
-| `db push` says "up to date" but tables are missing | The migration versions were recorded by an older run: run the three files in the SQL editor instead |
+| `db push` says "up to date" but tables are missing | The migration versions were recorded by an older run: run the four files in the SQL editor instead |
+| Sign-in on a deployed site redirects to `localhost` or is blocked | Set Site URL and Redirect URLs in Supabase **Authentication → URL Configuration** to the deployed address (see hosted step 6) |
+| Deployed site shows no data or "Invalid API key" | An environment variable is missing or wrong: fix it in the host's settings and redeploy |
 | "We could not reach the authentication service" | Is `npm run db:start` running? Is the URL in `.env.local` right? |
 | Port 54321/54322 already in use | `npm run db:stop`, or change ports in `supabase/config.toml` |

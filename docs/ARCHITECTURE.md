@@ -2,6 +2,8 @@
 
 Answers to section C of the trial brief. The *Architecture* page of the dashboard presents the same material.
 
+Live demo: https://isectaicontrolcenter.vercel.app
+
 ## 1. Technology: Supabase (Postgres) + Next.js + TypeScript
 
 - **Supabase** — iSectAI already uses it, so this is the lowest-risk, fastest-to-adopt choice. It bundles
@@ -68,7 +70,8 @@ API and granted explicitly (see the migrations), and queries name their schema (
   The seeded customer account (`office@lakefront.example`) demonstrates the rejection.
 - Admin and customer accounts are kept in separate tables on purpose, so a mistake in customer permissions
   cannot hand out admin access.
-- Admins can read every tenant table but, in this prototype, change only businesses and industries.
+- Admins can read every tenant table. In this prototype they can change only businesses and industries,
+  plus their own admin profile (migration 4, `admin_self_profile`).
 - Self-sign-up is disabled (`config.toml`), so staff accounts are provisioned by an administrator.
 - The customer policies exist in the database but no customer portal does yet, and they are not covered by automated tests.
 
@@ -97,5 +100,6 @@ backup/restore is harder than with database-per-tenant; medical data needs compl
 
 ## 7. Reproducing the demo
 
-See the README: migrations create the three schemas, permissions, RLS and the `business_stats` view;
-`supabase/seed.sql` loads two clinics and one plumbing/HVAC business with fictional data.
+See the README: the four migrations create the three schemas, permissions, RLS, the `business_stats` view
+and the admin self-profile access; `supabase/seed.sql` loads two clinics and one plumbing/HVAC business
+with fictional data.
