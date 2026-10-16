@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { SectionLoadingLink } from '@/components/shared/section-loading'
 import { cn } from '@/lib/utils'
 
 type PaginationProps = {
@@ -12,6 +12,9 @@ type PaginationProps = {
   /** Builds the URL of a page, keeping the other filters. */
   hrefFor: (page: number) => string
 }
+
+// Page links are SectionLoadingLinks: inside a SectionLoadingProvider (business records, activity log) a click shows the
+// loading card, locks the page and keeps the scroll position. Elsewhere (businesses list) they behave like normal links.
 
 /** 1 … 4 5 6 … 12 — always includes the first, last and current page. */
 function getPageItems(page: number, pageCount: number): (number | 'gap')[] {
@@ -41,9 +44,9 @@ export function Pagination({ page, pageCount, total, pageSize, noun, hrefFor }: 
       {pageCount > 1 ? (
         <nav aria-label="Pagination" className="flex items-center gap-1.5">
           {page > 1 ? (
-            <Link href={hrefFor(page - 1)} aria-label="Previous page" scroll={false} className={cn(CELL, 'border-border bg-card hover:bg-accent')}>
+            <SectionLoadingLink href={hrefFor(page - 1)} aria-label="Previous page" scroll={false} className={cn(CELL, 'border-border bg-card hover:bg-accent')}>
               <ChevronLeft className="h-4 w-4" aria-hidden />
-            </Link>
+            </SectionLoadingLink>
           ) : (
             <span aria-hidden className={cn(CELL, 'border-border bg-card opacity-40')}>
               <ChevronLeft className="h-4 w-4" />
@@ -56,7 +59,7 @@ export function Pagination({ page, pageCount, total, pageSize, noun, hrefFor }: 
                 …
               </span>
             ) : (
-              <Link
+              <SectionLoadingLink
                 key={item}
                 href={hrefFor(item)}
                 scroll={false}
@@ -65,14 +68,14 @@ export function Pagination({ page, pageCount, total, pageSize, noun, hrefFor }: 
                 className={cn(CELL, item === page ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:bg-accent')}
               >
                 {item}
-              </Link>
+              </SectionLoadingLink>
             ),
           )}
 
           {page < pageCount ? (
-            <Link href={hrefFor(page + 1)} aria-label="Next page" scroll={false} className={cn(CELL, 'border-border bg-card hover:bg-accent')}>
+            <SectionLoadingLink href={hrefFor(page + 1)} aria-label="Next page" scroll={false} className={cn(CELL, 'border-border bg-card hover:bg-accent')}>
               <ChevronRight className="h-4 w-4" aria-hidden />
-            </Link>
+            </SectionLoadingLink>
           ) : (
             <span aria-hidden className={cn(CELL, 'border-border bg-card opacity-40')}>
               <ChevronRight className="h-4 w-4" />
