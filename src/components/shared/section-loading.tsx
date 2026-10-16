@@ -14,6 +14,48 @@ type SectionLoadingContextValue = {
 const SectionLoadingContext = React.createContext<SectionLoadingContextValue | null>(null)
 
 /**
+ * Why this exists: a tab/chip lives in the URL (?tab=staff), so Next.js builds the page again on the server and
+ * swaps the whole page in. The browser then lands back at the top, which feels like the entire screen refreshed.
+ * So the scroll position is saved when a tab/chip is clicked and put back once the new content is on screen.
+ *
+ * It is a module-level variable (not React state) because the page, including the provider below, is replaced
+ * by the new page, so React state would be lost at exactly the moment it is needed.
+ */
+let savedScroll: { y: number; path: string; time: number } | null = null
+
+/** A saved position older than this is ignored (e.g. the navigation was cancelled). */
+const SCROLL_MAX_AGE_MS = 30_000
+/** How long (in frames, ~60 per second) to keep the position pinned while the new content finishes rendering. */
+const SCROLL_PIN_FRAMES = 90
+
+function restoreSavedScroll() {
+  const saved = savedScroll
+  savedScroll = null
+  if (!saved || saved.path !== window.location.pathname || Date.now() - saved.time > SCROLL_MAX_AGE_MS) return
+
+  let frames = 0
+  let stopped = false
+  const events = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const
+
+  const stop = () => {
+    stopped = true
+    for (const name of events) window.removeEventListener(name, stop)
+  }
+  // The moment the user scrolls or presses a key themselves, stop pinning so we never fight them.
+  for (const name of events) window.addEventListener(name, stop, { passive: true })
+
+  const pin = () => {
+    if (stopped) return
+    // The new content may still be streaming in (shorter page), so keep re-applying for a moment.
+    if (Math.abs(window.scrollY - saved.y) > 1) window.scrollTo(0, saved.y)
+    frames += 1
+    if (frames >= SCROLL_PIN_FRAMES) return stop()
+    window.requestAnimationFrame(pin)
+  }
+  pin()
+}
+
+/**
  * Tracks a "tab or chip was clicked, the new content is still loading" state for ONE section of a page.
  * Put it around the links (SectionLoadingLink) and the area they change (SectionLoadingArea).
  * It renders no HTML of its own.
@@ -23,8 +65,14 @@ export function SectionLoadingProvider({ children }: { children: React.ReactNode
   const [isPending, startTransition] = React.useTransition()
   const [label, setLabel] = React.useState('Loading…')
 
+  // Runs when this provider appears (the new page replaced the old one) and when a load finishes in place.
+  React.useLayoutEffect(() => {
+    if (!isPending) restoreSavedScroll()
+  }, [isPending])
+
   const navigate = React.useCallback(
     (href: string, nextLabel: string) => {
+      savedScroll = { y: window.scrollY, path: window.location.pathname, time: Date.now() }
       setLabel(nextLabel)
       startTransition(() => router.push(href, { scroll: false }))
     },
