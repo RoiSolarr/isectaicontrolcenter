@@ -5,6 +5,7 @@ import { Suspense } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
 import { SectionError } from '@/components/shared/section-error'
+import { SectionLoadingArea, SectionLoadingProvider } from '@/components/shared/section-loading'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { BusinessHeaderCard } from '@/features/businesses/components/business-header-card'
@@ -78,18 +79,22 @@ export default async function BusinessPage({ params, searchParams }: BusinessPag
       </div>
 
       <Card>
-        <BusinessTabs
-          businessId={business.id}
-          active={tab}
-          recordLabel={business.industry.recordLabel}
-          openRecords={business.stats.openRecords}
-          staffCount={business.stats.staffCount}
-        />
-        <CardContent>
-          <Suspense key={suspenseKey} fallback={<TabSkeleton />}>
-            <BusinessTabContent business={business} tab={tab} searchParams={query} />
-          </Suspense>
-        </CardContent>
+        <SectionLoadingProvider>
+          <BusinessTabs
+            businessId={business.id}
+            active={tab}
+            recordLabel={business.industry.recordLabel}
+            openRecords={business.stats.openRecords}
+            staffCount={business.stats.staffCount}
+          />
+          <CardContent>
+            <SectionLoadingArea className="min-h-[220px]">
+              <Suspense key={suspenseKey} fallback={<TabSkeleton />}>
+                <BusinessTabContent business={business} tab={tab} searchParams={query} />
+              </Suspense>
+            </SectionLoadingArea>
+          </CardContent>
+        </SectionLoadingProvider>
       </Card>
     </div>
   )

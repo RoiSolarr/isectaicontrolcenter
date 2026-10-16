@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { SectionLoadingLink } from '@/components/shared/section-loading'
 import type { ActivityFilters, ActivityTypeCount } from '@/features/activity/types'
 import { buildActivityHref } from '@/features/activity/utils/build-href'
 import { getEventMeta } from '@/features/activity/utils/event-types'
@@ -39,9 +39,10 @@ export function EventTypeChips({ filters, byType, total }: EventTypeChipsProps) 
 
           return (
             <li key={chip.type || 'all'} className="shrink-0">
-              <Link
+              <SectionLoadingLink
                 href={buildActivityHref(filters, { type: chip.type, page: 1 })}
                 scroll={false}
+                loadingLabel={`Loading ${chip.label}…`}
                 aria-current={isActive ? 'true' : undefined}
                 className={cn(
                   'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -55,7 +56,7 @@ export function EventTypeChips({ filters, byType, total }: EventTypeChipsProps) 
                     {formatNumber(chip.count)}
                   </span>
                 ) : null}
-              </Link>
+              </SectionLoadingLink>
             </li>
           )
         })}

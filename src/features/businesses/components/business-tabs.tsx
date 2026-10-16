@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { SectionLoadingLink } from '@/components/shared/section-loading'
 import { Badge } from '@/components/ui/badge'
 import { DEFAULT_TAB } from '@/features/businesses/constants'
 import type { BusinessTab } from '@/features/businesses/types'
@@ -31,9 +31,10 @@ export function BusinessTabs({ businessId, active, recordLabel, openRecords, sta
           const isActive = tab.id === active
           return (
             <li key={tab.id} className="shrink-0">
-              <Link
+              <SectionLoadingLink
                 href={`${ROUTES.businesses}/${businessId}${buildQueryString({ tab: tab.id }, { tab: DEFAULT_TAB })}`}
                 scroll={false}
+                loadingLabel={`Loading ${tab.label}…`}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-2 border-b-2 px-3 py-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -42,7 +43,7 @@ export function BusinessTabs({ businessId, active, recordLabel, openRecords, sta
               >
                 {tab.label}
                 {tab.badge ? <Badge variant="neutral">{tab.badge}</Badge> : null}
-              </Link>
+              </SectionLoadingLink>
             </li>
           )
         })}

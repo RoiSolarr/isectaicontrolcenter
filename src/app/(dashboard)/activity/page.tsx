@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Pagination } from '@/components/shared/pagination'
 import { PageHeader } from '@/components/shared/page-header'
 import { SectionError } from '@/components/shared/section-error'
+import { SectionLoadingArea, SectionLoadingProvider } from '@/components/shared/section-loading'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ActivityEmptyState } from '@/features/activity/components/activity-empty-state'
@@ -73,24 +74,28 @@ export default async function ActivityPage({ searchParams }: ActivityPageProps) 
             </CardHeader>
 
             <CardContent className="space-y-5">
-              <ActivityFilterBar
-                filters={filters}
-                businesses={result.data.businesses}
-                exportHref={buildActivityHref(filters, { page: 1 }, `${ROUTES.activity}/export`)}
-              />
+              <SectionLoadingProvider>
+                <ActivityFilterBar
+                  filters={filters}
+                  businesses={result.data.businesses}
+                  exportHref={buildActivityHref(filters, { page: 1 }, `${ROUTES.activity}/export`)}
+                />
 
-              <EventTypeChips filters={filters} byType={result.data.summary.byType} total={result.data.summary.total} />
+                <EventTypeChips filters={filters} byType={result.data.summary.byType} total={result.data.summary.total} />
 
-              {result.data.events.length === 0 ? <ActivityEmptyState isFiltered={hasActiveFilters(filters)} /> : <ActivityFeed events={result.data.events} />}
+                <SectionLoadingArea className="min-h-[200px] space-y-5">
+                  {result.data.events.length === 0 ? <ActivityEmptyState isFiltered={hasActiveFilters(filters)} /> : <ActivityFeed events={result.data.events} />}
 
-              <Pagination
-                page={result.data.page}
-                pageCount={result.data.pageCount}
-                total={result.data.total}
-                pageSize={result.data.pageSize}
-                noun="events"
-                hrefFor={(page) => buildActivityHref(filters, { page })}
-              />
+                  <Pagination
+                    page={result.data.page}
+                    pageCount={result.data.pageCount}
+                    total={result.data.total}
+                    pageSize={result.data.pageSize}
+                    noun="events"
+                    hrefFor={(page) => buildActivityHref(filters, { page })}
+                  />
+                </SectionLoadingArea>
+              </SectionLoadingProvider>
             </CardContent>
           </Card>
         </>
