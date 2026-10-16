@@ -55,15 +55,63 @@ function restoreSavedScroll() {
   pin()
 }
 
+/** Keys that scroll the page or move focus; blocked while the page is locked. */
+const LOCKED_KEYS = new Set(['Tab', 'Enter', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End'])
+
+/**
+ * Locks the whole page while a tab/chip is loading: no scrolling (wheel, touch, keyboard, scrollbar),
+ * no clicking and no tabbing to anything. Everything is undone when the load finishes.
+ */
+function useLockPage(locked: boolean) {
+  React.useLayoutEffect(() => {
+    if (!locked) return
+
+    const html = document.documentElement
+    const body = document.body
+    const previousHtmlOverflow = html.style.overflow
+    const previousBodyPaddingRight = body.style.paddingRight
+
+    // Hiding the scrollbar would make the page jump sideways, so its width is replaced with padding.
+    const scrollbarWidth = window.innerWidth - html.clientWidth
+    html.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`
+
+    // Pull focus off the tab/chip that was just clicked so Enter/Space cannot press it again.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+
+    const stop = (event: Event) => event.preventDefault()
+    const blockKeys = (event: KeyboardEvent) => {
+      if (LOCKED_KEYS.has(event.key)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    window.addEventListener('wheel', stop, { passive: false })
+    window.addEventListener('touchmove', stop, { passive: false })
+    window.addEventListener('keydown', blockKeys, true)
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow
+      body.style.paddingRight = previousBodyPaddingRight
+      window.removeEventListener('wheel', stop)
+      window.removeEventListener('touchmove', stop)
+      window.removeEventListener('keydown', blockKeys, true)
+    }
+  }, [locked])
+}
+
 /**
  * Tracks a "tab or chip was clicked, the new content is still loading" state for ONE section of a page.
  * Put it around the links (SectionLoadingLink) and the area they change (SectionLoadingArea).
- * It renders no HTML of its own.
+ * While loading, the whole page is locked (see useLockPage) behind an invisible click-blocking layer.
  */
 export function SectionLoadingProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const [label, setLabel] = React.useState('Loading…')
+
+  useLockPage(isPending)
 
   // Runs when this provider appears (the new page replaced the old one) and when a load finishes in place.
   React.useLayoutEffect(() => {
@@ -81,7 +129,13 @@ export function SectionLoadingProvider({ children }: { children: React.ReactNode
 
   const value = React.useMemo(() => ({ isPending, label, navigate }), [isPending, label, navigate])
 
-  return <SectionLoadingContext.Provider value={value}>{children}</SectionLoadingContext.Provider>
+  return (
+    <SectionLoadingContext.Provider value={value}>
+      {children}
+      {/* Invisible layer above the sidebar and top bar: nothing on the page can be clicked while loading. */}
+      {isPending ? <div aria-hidden className="fixed inset-0 z-[90] cursor-wait" /> : null}
+    </SectionLoadingContext.Provider>
+  )
 }
 
 type SectionLoadingLinkProps = Omit<React.ComponentProps<typeof Link>, 'href'> & {
@@ -121,7 +175,7 @@ export function SectionLoadingLink({ href, loadingLabel = 'Loading…', onClick,
 /**
  * Wraps the content that changes when a SectionLoadingLink is clicked. While it loads, the old content
  * fades and a small loading card appears on top of this area only. The sidebar, top bar and the rest
- * of the page are not covered.
+ * of the page are not covered visually, but they are locked (see SectionLoadingProvider).
  */
 export function SectionLoadingArea({ children, className }: { children: React.ReactNode; className?: string }) {
   const section = React.useContext(SectionLoadingContext)
