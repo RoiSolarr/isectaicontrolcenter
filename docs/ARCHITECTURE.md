@@ -56,6 +56,9 @@ API and granted explicitly (see the migrations), and queries name their schema (
 - Isolation is enforced by Postgres, **not** by UI filters: a forged request from the browser still hits RLS.
 - The view uses `security_invoker = true`, so it cannot silently bypass RLS.
 - The **service-role key** (which bypasses RLS) is never used by the app or exposed to the browser.
+- **Verified, not just designed:** `supabase/checks/tenant_isolation.sql` runs 31 checks against the real policies and
+  seed data (anonymous, customer, user in no business, platform admin, cross-business foreign keys). It passed on the
+  hosted project. See the README, "Testing: tenant isolation".
 
 ## 4. Internal administrator vs customer access
 
@@ -73,7 +76,9 @@ API and granted explicitly (see the migrations), and queries name their schema (
 - Admins can read every tenant table. In this prototype they can change only businesses and industries,
   plus their own admin profile (migration 4, `admin_self_profile`).
 - Self-sign-up is disabled (`config.toml`), so staff accounts are provisioned by an administrator.
-- The customer policies exist in the database but no customer portal does yet, and they are not covered by automated tests.
+- The customer policies exist in the database but no customer portal does yet. They are covered by the 31-check isolation
+  script (`supabase/checks/tenant_isolation.sql`), which simulates the Lakefront customer user inside SQL. The script is
+  run by hand and is not part of CI yet.
 
 ## 5. Advantages and limitations
 
@@ -90,7 +95,8 @@ backup/restore is harder than with database-per-tenant; medical data needs compl
 
 1. **Mandatory MFA** for platform admins; SSO (SAML) for iSectAI staff; an `app_role` claim added through a
    Custom Access Token Hook.
-2. **Automated RLS tests** (pgTAP) proving tenant A can never read tenant B, in every schema.
+2. **Run the isolation checks automatically** (for example pgTAP in CI) on every change, and extend them to every new
+   industry schema. Today they are a hand-run script: `supabase/checks/tenant_isolation.sql`.
 3. **Audit log** written by database triggers (who changed what, when) plus admin "view as" tracking.
 4. **Partitioning / indexes** on `medical.appointments`, `field_service.jobs` and `core.activity_events` as volume grows.
 5. **Server-side pagination, search and exports** with rate limiting; background jobs for health/uptime sync.
@@ -102,4 +108,4 @@ backup/restore is harder than with database-per-tenant; medical data needs compl
 
 See the README: the four migrations create the three schemas, permissions, RLS, the `business_stats` view
 and the admin self-profile access; `supabase/seed.sql` loads two clinics and one plumbing/HVAC business
-with fictional data.
+with fictional data. To verify tenant isolation, run `supabase/checks/tenant_isolation.sql` in the SQL Editor.

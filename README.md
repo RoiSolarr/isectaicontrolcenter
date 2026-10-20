@@ -172,6 +172,25 @@ On a host such as Vercel, `NEXT_PUBLIC_` values are baked in at build time, so r
 
 ---
 
+## Testing: tenant isolation
+
+`supabase/checks/tenant_isolation.sql` is a repeatable script with 31 checks that run against the real
+Row Level Security policies and the seed data. It checks that:
+
+- anonymous visitors can read nothing
+- a customer user (Lakefront) sees and touches only Lakefront rows, and attempts to write into another business change nothing
+- a signed-in user who belongs to no business sees nothing
+- a platform admin can read every business but cannot write tenant records
+- composite foreign keys block cross-business references
+
+**How to run:** Supabase dashboard → SQL Editor → paste the file → Run. The result is shown as an error on purpose:
+the script raises an error to print its report and to roll back everything. Look for `PASSED 31 of 31 checks`.
+
+**Last run:** hosted Supabase project, 31 of 31 checks passed.
+
+**Limits:** the script is run by hand and is not part of CI yet, and the customer portal is not built, so customers are
+simulated with JWT claims inside SQL. Running the checks automatically on every change is the next step.
+
 ## Project structure
 
 Code is grouped **by feature**, with descriptive file names, so a bug can be traced quickly.
@@ -206,6 +225,7 @@ src/
 
 supabase/
 ├─ config.toml                   # Local CLI config (schemas exposed, self-sign-up disabled)
+├─ checks/                       # tenant_isolation.sql: 31 isolation checks (run in the SQL Editor)
 ├─ migrations/                   # 1 schemas + tables · 2 permissions + RLS · 3 dashboard views · 4 admin self-profile
 └─ seed.sql                      # Fictional businesses, staff, customers, appointments, jobs, activity
 
